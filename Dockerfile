@@ -1,11 +1,6 @@
-ARG IMAGE=intersystems/iris:2019.1.0S.111.0
-ARG IMAGE=store/intersystems/irishealth:2019.3.0.308.0-community
-ARG IMAGE=store/intersystems/iris-community:2019.3.0.309.0
-ARG IMAGE=store/intersystems/iris-community:2019.4.0.379.0
-ARG IMAGE=store/intersystems/iris-community:2020.1.0.197.0
-ARG IMAGE=intersystemsdc/iris-community:2020.1.0.209.0-zpm
-ARG IMAGE=intersystemsdc/iris-community:2020.1.0.215.0-zpm
-ARG IMAGE=intersystemsdc/iris-community:2020.2.0.196.0-zpm
+#イメージのタグはこちら（https://hub.docker.com/_/intersystems-iris-data-platform）でご確認ください
+ARG IMAGE=store/intersystems/iris-community:2020.2.0.204.0
+ARG IMAGE=store/intersystems/iris-community:2020.1.0.215.0
 FROM $IMAGE
 
 USER root
@@ -31,15 +26,8 @@ ENV TERM xterm
 
 # sudo コマンド
 RUN apt-get install -y sudo
-ARG username=hoge
-ARG wkdir=/home/work
-RUN echo "root:root" | chpasswd && \
-    adduser --disabled-password --gecos "" "${username}" && \
-    echo "${username}:${username}" | chpasswd && \
-    echo "%${username}    ALL=(ALL)   NOPASSWD:    ALL" >> /etc/sudoers.d/${username} && \
-    chmod 0440 /etc/sudoers.d/${username} 
-WORKDIR ${wkdir}
-RUN chown ${username}:${username} ${wkdir}
+# rootにパスワードを設定する（root）
+RUN echo "root:root" | chpasswd
 
 RUN apt-get install -y vim less
 RUN apt-get -y install python3 python3-pip
@@ -49,16 +37,6 @@ RUN pip3 install --upgrade setuptools
 RUN apt-cache search iodbc
 RUN apt-get install -y unixodbc-dev iodbc
 RUN pip3 install --upgrade --global-option=build_ext --global-option="-I/usr/local/include" --global-option="-L/usr/local/lib" pyodbc
-
-# Matplotlib 用の設定ファイルを用意する。
-#WORKDIR /etc
-#RUN echo "backend : Agg" >> matplotlibrc \
-# && echo "font.family : Ricty Diminished" >> matplotlibrc
-
-# Matplotlib をインストールする。
-#WORKDIR /opt/app
-#ENV MATPLOTLIB_VERSION 2.0.2
-#RUN pip3 install matplotlib==$MATPLOTLIB_VERSION
 
 # pandas インストール
 RUN pip3 install pandas
