@@ -5,15 +5,8 @@ FROM $IMAGE
 
 USER root
 
-WORKDIR /opt/irisapp
-RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
-
-COPY  --chown=irisowner irissession.sh /
-RUN chmod +x /irissession.sh 
-
 ###########################################
 ##### Install Python
-USER root
 
 RUN apt-get update
 RUN apt-get -y install locales && \
@@ -24,25 +17,38 @@ ENV LC_ALL ja_JP.UTF-8
 ENV TZ JST-9
 ENV TERM xterm
 
-# sudo コマンド
-RUN apt-get install -y sudo
-# rootにパスワードを設定する（root）
-RUN echo "root:root" | chpasswd
-
 RUN apt-get install -y vim less
 RUN apt-get -y install python3 python3-pip
 RUN pip3 install --upgrade setuptools
 
+# IRIS odbcドライバのインストール
+COPY src/pyodbc_wheel/linux .
 #pyodbcインスール
 RUN apt-cache search iodbc
 RUN apt-get install -y unixodbc-dev iodbc
 RUN pip3 install --upgrade --global-option=build_ext --global-option="-I/usr/local/include" --global-option="-L/usr/local/lib" pyodbc
+RUN odbcinst -i -d -f odbcinst.ini
+RUN odbcinst -i -s -l -f odbcinst.ini \
+ && mv $ISC_PACKAGE_INSTALLDIR/mgr/irisodbc.ini $ISC_PACKAGE_INSTALLDIR/mgr/irisodbc.ini.org \
+ && cp odbcinst.ini $ISC_PACKAGE_INSTALLDIR/mgr/irisodbc.ini \
+ && cd $ISC_PACKAGE_INSTALLDIR/bin \
+ && mv odbcgateway.so odbcgateway.so.org \
+ && cp odbcgatewayur64.so odbcgateway.so\
+ && mv liblber-2.4.so.2 liblber-2.4.so.2.org \
+ && mv libldap-2.4.so.2 libldap-2.4.so.2.org \
+ && ln -s /usr/lib/x86_64-linux-gnu/liblber-2.4.so.2 liblber-2.4.so.2 \
+ && ln -s /usr/lib/x86_64-linux-gnu/libldap-2.4.so.2 libldap-2.4.so.2 
+
 
 # pandas インストール
 RUN pip3 install pandas
 
 
 WORKDIR /opt/irisapp
+RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
+
+COPY  --chown=irisowner irissession.sh /
+RUN chmod +x /irissession.sh 
 
 ###########################################
 #### Set up the irisowner account and load application
